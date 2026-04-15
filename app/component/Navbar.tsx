@@ -29,10 +29,6 @@ export default function Navbar() {
             Home
           </Link>
 
-          <Link href="/service" className={isActive("/service")}>
-            Service
-          </Link>
-
           <Link href="/about" className={isActive("/about")}>
             About
           </Link>
@@ -75,10 +71,6 @@ export default function Navbar() {
         <div className="md:hidden border-t bg-white px-6 py-4 space-y-3 text-sm">
           <Link href="/" className="block text-slate-700">
             Home
-          </Link>
-
-          <Link href="/services" className="block text-slate-700">
-            Services
           </Link>
 
           <Link href="/about" className="block text-slate-700">
