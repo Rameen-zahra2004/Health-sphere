@@ -33,11 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createAdmin = exports.deletePatient = exports.getAllPatients = exports.deleteDoctor = exports.verifyDoctor = exports.createDoctor = exports.getAllDoctors = void 0;
+exports.createAdmin = exports.deletePatient = exports.getAllPatients = exports.verifyDoctor = exports.deleteDoctor = exports.updateDoctor = exports.createDoctor = exports.getDoctorById = exports.getAllDoctors = void 0;
 const adminService = __importStar(require("../services/admin.service"));
 const AppError_1 = require("../utils/AppError");
 /* ===============================
-   SAFE PARAM HELPER (LOCAL)
+   SAFE PARAM HELPER
 =============================== */
 const getParamId = (id, label) => {
     if (!id || Array.isArray(id)) {
@@ -46,7 +46,17 @@ const getParamId = (id, label) => {
     return id;
 };
 /* ===============================
-   DOCTORS
+   RESPONSE WRAPPER (CONSISTENT API)
+=============================== */
+const sendResponse = (res, data, message = "Success", status = 200) => {
+    return res.status(status).json({
+        success: true,
+        message,
+        data,
+    });
+};
+/* ===============================
+   🟦 DOCTORS CRUD
 =============================== */
 /**
  * GET ALL DOCTORS
@@ -54,10 +64,7 @@ const getParamId = (id, label) => {
 const getAllDoctors = async (_req, res, next) => {
     try {
         const doctors = await adminService.getAllDoctors();
-        res.json({
-            success: true,
-            data: doctors,
-        });
+        sendResponse(res, doctors);
     }
     catch (error) {
         next(error);
@@ -65,56 +72,52 @@ const getAllDoctors = async (_req, res, next) => {
 };
 exports.getAllDoctors = getAllDoctors;
 /**
- * CREATE DOCTOR ✅ ADDED
+ * GET SINGLE DOCTOR (FIXED - MISSING BEFORE)
+ */
+const getDoctorById = async (req, res, next) => {
+    try {
+        const id = getParamId(req.params.id, "Doctor ID");
+        const doctor = await adminService.getDoctorById(id);
+        if (!doctor) {
+            throw new AppError_1.AppError("Doctor not found", 404);
+        }
+        sendResponse(res, doctor);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getDoctorById = getDoctorById;
+/**
+ * CREATE DOCTOR
  */
 const createDoctor = async (req, res, next) => {
     try {
-        const { firstName, lastName, email, password, specialization, experience, bio, clinicAddress, consultationFee, } = req.body;
-        if (!firstName ||
-            !lastName ||
-            !email ||
-            !password ||
-            !specialization ||
-            experience === undefined) {
-            throw new AppError_1.AppError("Missing required fields", 400);
-        }
-        const doctor = await adminService.createDoctor({
-            firstName,
-            lastName,
-            email,
-            password,
-            specialization,
-            experience,
-            bio,
-            clinicAddress,
-            consultationFee,
-        });
-        res.status(201).json({
-            success: true,
-            data: doctor,
-        });
+        const doctor = await adminService.createDoctor(req.body);
+        sendResponse(res, doctor, "Doctor created", 201);
     }
     catch (error) {
         next(error);
     }
 };
 exports.createDoctor = createDoctor;
-/* VERIFY DOCTOR
-*/
-const verifyDoctor = async (req, res, next) => {
+/**
+ * UPDATE DOCTOR
+ */
+const updateDoctor = async (req, res, next) => {
     try {
         const id = getParamId(req.params.id, "Doctor ID");
-        const result = await adminService.verifyDoctor(id);
-        res.json({
-            success: true,
-            data: result,
-        });
+        const updatedDoctor = await adminService.updateDoctor(id, req.body);
+        if (!updatedDoctor) {
+            throw new AppError_1.AppError("Doctor not found", 404);
+        }
+        sendResponse(res, updatedDoctor, "Doctor updated");
     }
     catch (error) {
         next(error);
     }
 };
-exports.verifyDoctor = verifyDoctor;
+exports.updateDoctor = updateDoctor;
 /**
  * DELETE DOCTOR
  */
@@ -122,18 +125,29 @@ const deleteDoctor = async (req, res, next) => {
     try {
         const id = getParamId(req.params.id, "Doctor ID");
         const result = await adminService.deleteDoctor(id);
-        res.json({
-            success: true,
-            data: result,
-        });
+        sendResponse(res, result, "Doctor deleted");
     }
     catch (error) {
         next(error);
     }
 };
 exports.deleteDoctor = deleteDoctor;
+/**
+ * VERIFY DOCTOR
+ */
+const verifyDoctor = async (req, res, next) => {
+    try {
+        const id = getParamId(req.params.id, "Doctor ID");
+        const result = await adminService.verifyDoctor(id);
+        sendResponse(res, result, "Doctor verified");
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.verifyDoctor = verifyDoctor;
 /* ===============================
-   PATIENTS
+   🟨 PATIENTS
 =============================== */
 /**
  * GET ALL PATIENTS
@@ -141,10 +155,7 @@ exports.deleteDoctor = deleteDoctor;
 const getAllPatients = async (_req, res, next) => {
     try {
         const patients = await adminService.getAllPatients();
-        res.json({
-            success: true,
-            data: patients,
-        });
+        sendResponse(res, patients);
     }
     catch (error) {
         next(error);
@@ -158,10 +169,7 @@ const deletePatient = async (req, res, next) => {
     try {
         const id = getParamId(req.params.id, "Patient ID");
         const result = await adminService.deletePatient(id);
-        res.json({
-            success: true,
-            data: result,
-        });
+        sendResponse(res, result, "Patient deleted");
     }
     catch (error) {
         next(error);
@@ -169,26 +177,15 @@ const deletePatient = async (req, res, next) => {
 };
 exports.deletePatient = deletePatient;
 /* ===============================
-   ADMIN MANAGEMENT
+   🟪 ADMIN MANAGEMENT
 =============================== */
 /**
  * CREATE ADMIN
  */
 const createAdmin = async (req, res, next) => {
     try {
-        const { name, email, password } = req.body;
-        if (!name || !email || !password) {
-            throw new AppError_1.AppError("All fields are required", 400);
-        }
-        const admin = await adminService.createAdmin({
-            name,
-            email,
-            password,
-        });
-        res.status(201).json({
-            success: true,
-            data: admin,
-        });
+        const admin = await adminService.createAdmin(req.body);
+        sendResponse(res, admin, "Admin created", 201);
     }
     catch (error) {
         next(error);

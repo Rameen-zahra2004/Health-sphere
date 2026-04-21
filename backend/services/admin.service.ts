@@ -1,4 +1,3 @@
-
 import Doctor from "../models/doctor";
 import User from "../models/User";
 import { AppError } from "../utils/AppError";
@@ -19,147 +18,127 @@ type CreateDoctorInput = {
   consultationFee?: number;
 };
 
+type UpdateDoctorInput = Partial<CreateDoctorInput>;
+
 /* ===============================
-   DOCTOR MANAGEMENT
+   STRONG TYPED FORMATTER (NO any)
+=============================== */
+
+type DoctorDoc = {
+  _id: unknown;
+  firstName: string;
+  lastName: string;
+  email: string;
+  specialization: string;
+  experience: number;
+  bio?: string;
+  clinicAddress?: string;
+  consultationFee?: number;
+  isVerified?: boolean;
+  availability?: unknown;
+  userId?: unknown;
+};
+
+const formatDoctor = (doc: DoctorDoc) => ({
+  _id: String(doc._id),
+  firstName: doc.firstName,
+  lastName: doc.lastName,
+  email: doc.email,
+  specialization: doc.specialization,
+  experience: doc.experience,
+  bio: doc.bio,
+  clinicAddress: doc.clinicAddress,
+  consultationFee: doc.consultationFee,
+  isVerified: doc.isVerified,
+  availability: doc.availability,
+});
+
+/* ===============================
+   DOCTORS - GET ALL
 =============================== */
 
 export const getAllDoctors = async () => {
   const doctors = await Doctor.find().sort({ createdAt: -1 });
-
-  return doctors.map((doc) => ({
-    id: doc._id.toString(),
-    firstName: doc.firstName,
-    lastName: doc.lastName,
-    email: doc.email,
-    specialization: doc.specialization,
-    experience: doc.experience,
-    bio: doc.bio,
-    clinicAddress: doc.clinicAddress,
-    consultationFee: doc.consultationFee,
-    isVerified: doc.isVerified,
-    availability: doc.availability,
-  }));
+  return doctors.map((doc) => formatDoctor(doc));
 };
 
 /* ===============================
-   CREATE DOCTOR (FIXED ✅)
+   DOCTOR BY ID
 =============================== */
 
-// export const createDoctor = async (data: CreateDoctorInput) => {
-//   // ✅ Check if user already exists
-//   const existingUser = await User.findOne({ email: data.email });
-//   if (existingUser) {
-//     throw new AppError("Email already exists", 409);
-//   }
+export const getDoctorById = async (id: string) => {
+  const doctor = await Doctor.findById(id);
 
-//   // ✅ 1. Create USER first
-//   const user = await User.create({
-//     name: `${data.firstName} ${data.lastName}`,
-//     email: data.email,
-//     password: data.password, // hashed in User model
-//     role: "doctor",
-//   });
+  if (!doctor) {
+    throw new AppError("Doctor not found", 404);
+  }
 
-//   // ✅ 2. Create DOCTOR linked with userId
-//   const doctor = await Doctor.create({
-//     userId: user._id, // 🔥 FIXED
+  return formatDoctor(doctor);
+};
 
-//     firstName: data.firstName,
-//     lastName: data.lastName,
-//     email: data.email,
-//     password: data.password, // ⚠️ still here (optional to remove later)
-//     specialization: data.specialization,
-//     experience: data.experience,
-//     bio: data.bio || "",
-//     clinicAddress: data.clinicAddress || "",
-//     consultationFee: data.consultationFee || 0,
-//     isVerified: false,
-//   });
+/* ===============================
+   CREATE DOCTOR
+=============================== */
 
-//   return {
-//     id: doctor._id.toString(),
-//     firstName: doctor.firstName,
-//     lastName: doctor.lastName,
-//     email: doctor.email,
-//     specialization: doctor.specialization,
-//     experience: doctor.experience,
-//     isVerified: doctor.isVerified,
-//   };
-// };
 export const createDoctor = async (data: CreateDoctorInput) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    password,
-    specialization,
-    experience,
-    bio,
-    clinicAddress,
-    consultationFee,
-  } = data;
+  const existingUser = await User.findOne({ email: data.email });
 
-  console.log("📥 Incoming doctor payload:", data);
-
-  // 1. Check duplicate
-  const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new AppError("Email already exists", 409);
   }
 
-  console.log("🟡 Creating user...");
-
-  // 2. CREATE USER FIRST
   const user = await User.create({
-    firstName,
-    lastName,
-    email,
-    password,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email,
+    password: data.password,
     role: "doctor",
   });
 
-  console.log("✅ USER CREATED:", user._id);
-
-  if (!user?._id) {
-    throw new AppError("User creation failed", 500);
-  }
-
-  console.log("🟡 Creating doctor...");
-
-  // 3. CREATE DOCTOR WITH userId
   const doctor = await Doctor.create({
-    userId: user._id, // 🔥 FIXED
-
-    firstName,
-    lastName,
-    email,
-    password,
-    specialization,
-    experience,
-    bio: bio || "",
-    clinicAddress: clinicAddress || "",
-    consultationFee: consultationFee || 0,
+    userId: user._id,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email,
+    password: data.password,
+    specialization: data.specialization,
+    experience: data.experience,
+    bio: data.bio || "",
+    clinicAddress: data.clinicAddress || "",
+    consultationFee: data.consultationFee || 0,
     isVerified: false,
   });
 
-  console.log("✅ DOCTOR CREATED:", doctor._id);
-
-  return {
-    id: doctor._id.toString(),
-    firstName: doctor.firstName,
-    lastName: doctor.lastName,
-    email: doctor.email,
-    specialization: doctor.specialization,
-    experience: doctor.experience,
-    isVerified: doctor.isVerified,
-  };
+  return formatDoctor(doctor);
 };
+
+/* ===============================
+   UPDATE DOCTOR
+=============================== */
+
+export const updateDoctor = async (
+  id: string,
+  data: UpdateDoctorInput
+) => {
+  const doctor = await Doctor.findById(id);
+
+  if (!doctor) {
+    throw new AppError("Doctor not found", 404);
+  }
+
+  Object.assign(doctor, data);
+
+  await doctor.save();
+
+  return formatDoctor(doctor);
+};
+
 /* ===============================
    VERIFY DOCTOR
 =============================== */
 
-export const verifyDoctor = async (doctorId: string) => {
-  const doctor = await Doctor.findById(doctorId);
+export const verifyDoctor = async (id: string) => {
+  const doctor = await Doctor.findById(id);
 
   if (!doctor) {
     throw new AppError("Doctor not found", 404);
@@ -168,25 +147,23 @@ export const verifyDoctor = async (doctorId: string) => {
   doctor.isVerified = true;
   await doctor.save();
 
-  return {
-    id: doctor._id.toString(),
-    isVerified: doctor.isVerified,
-  };
+  return formatDoctor(doctor);
 };
 
 /* ===============================
    DELETE DOCTOR
 =============================== */
 
-export const deleteDoctor = async (doctorId: string) => {
-  const doctor = await Doctor.findById(doctorId);
+export const deleteDoctor = async (id: string) => {
+  const doctor = await Doctor.findById(id);
 
   if (!doctor) {
     throw new AppError("Doctor not found", 404);
   }
 
-  // ✅ also delete linked user (important)
-  await User.findByIdAndDelete(doctor.userId);
+  if (doctor.userId) {
+    await User.findByIdAndDelete(doctor.userId);
+  }
 
   await doctor.deleteOne();
 
@@ -197,17 +174,16 @@ export const deleteDoctor = async (doctorId: string) => {
 };
 
 /* ===============================
-   PATIENT MANAGEMENT
+   PATIENTS
 =============================== */
 
 export const getAllPatients = async () => {
   const patients = await User.find({ role: "patient" }).select("-password");
 
   return patients.map((p) => ({
-    id: p._id.toString(),
+    _id: String(p._id),
     name: p.name,
     email: p.email,
-    createdAt: p.createdAt,
   }));
 };
 
@@ -227,7 +203,7 @@ export const deletePatient = async (patientId: string) => {
 };
 
 /* ===============================
-   ADMIN MANAGEMENT
+   ADMIN
 =============================== */
 
 export const createAdmin = async (data: {
@@ -249,7 +225,7 @@ export const createAdmin = async (data: {
   });
 
   return {
-    id: admin._id.toString(),
+    _id: String(admin._id),
     name: admin.name,
     email: admin.email,
     role: admin.role,

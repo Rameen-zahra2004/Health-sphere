@@ -13,7 +13,8 @@ exports.config = {
     nodeEnv: process.env.NODE_ENV || "development",
     port: parseInt(process.env.PORT || "4000", 10),
     // ✅ IMPORTANT FIX: NO localhost fallback
-    mongoUri: process.env.MONGO_URI,
+    // mongoUri: process.env.MONGO_URI as string,
+    mongoUri: process.env.MONGO_URI || "",
     clientUrl: process.env.CLIENT_URL || "http://localhost:3000",
     jwtSecret: process.env.JWT_SECRET || "your-secret-key-change-this",
     jwtExpire: process.env.JWT_EXPIRE || "7d",

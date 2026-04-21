@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from "axios";
 /* ================= BASE API ================= */
 
 const baseURL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 const api = axios.create({
   baseURL: `${baseURL}/api`,

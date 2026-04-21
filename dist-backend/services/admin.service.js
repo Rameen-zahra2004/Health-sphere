@@ -3,144 +3,110 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createAdmin = exports.deletePatient = exports.getAllPatients = exports.deleteDoctor = exports.verifyDoctor = exports.createDoctor = exports.getAllDoctors = void 0;
+exports.createAdmin = exports.deletePatient = exports.getAllPatients = exports.deleteDoctor = exports.verifyDoctor = exports.updateDoctor = exports.createDoctor = exports.getDoctorById = exports.getAllDoctors = void 0;
 const doctor_1 = __importDefault(require("../models/doctor"));
 const User_1 = __importDefault(require("../models/User"));
 const AppError_1 = require("../utils/AppError");
+const formatDoctor = (doc) => ({
+    _id: String(doc._id),
+    firstName: doc.firstName,
+    lastName: doc.lastName,
+    email: doc.email,
+    specialization: doc.specialization,
+    experience: doc.experience,
+    bio: doc.bio,
+    clinicAddress: doc.clinicAddress,
+    consultationFee: doc.consultationFee,
+    isVerified: doc.isVerified,
+    availability: doc.availability,
+});
 /* ===============================
-   DOCTOR MANAGEMENT
+   DOCTORS - GET ALL
 =============================== */
 const getAllDoctors = async () => {
     const doctors = await doctor_1.default.find().sort({ createdAt: -1 });
-    return doctors.map((doc) => ({
-        id: doc._id.toString(),
-        firstName: doc.firstName,
-        lastName: doc.lastName,
-        email: doc.email,
-        specialization: doc.specialization,
-        experience: doc.experience,
-        bio: doc.bio,
-        clinicAddress: doc.clinicAddress,
-        consultationFee: doc.consultationFee,
-        isVerified: doc.isVerified,
-        availability: doc.availability,
-    }));
+    return doctors.map((doc) => formatDoctor(doc));
 };
 exports.getAllDoctors = getAllDoctors;
 /* ===============================
-   CREATE DOCTOR (FIXED ✅)
+   DOCTOR BY ID
 =============================== */
-// export const createDoctor = async (data: CreateDoctorInput) => {
-//   // ✅ Check if user already exists
-//   const existingUser = await User.findOne({ email: data.email });
-//   if (existingUser) {
-//     throw new AppError("Email already exists", 409);
-//   }
-//   // ✅ 1. Create USER first
-//   const user = await User.create({
-//     name: `${data.firstName} ${data.lastName}`,
-//     email: data.email,
-//     password: data.password, // hashed in User model
-//     role: "doctor",
-//   });
-//   // ✅ 2. Create DOCTOR linked with userId
-//   const doctor = await Doctor.create({
-//     userId: user._id, // 🔥 FIXED
-//     firstName: data.firstName,
-//     lastName: data.lastName,
-//     email: data.email,
-//     password: data.password, // ⚠️ still here (optional to remove later)
-//     specialization: data.specialization,
-//     experience: data.experience,
-//     bio: data.bio || "",
-//     clinicAddress: data.clinicAddress || "",
-//     consultationFee: data.consultationFee || 0,
-//     isVerified: false,
-//   });
-//   return {
-//     id: doctor._id.toString(),
-//     firstName: doctor.firstName,
-//     lastName: doctor.lastName,
-//     email: doctor.email,
-//     specialization: doctor.specialization,
-//     experience: doctor.experience,
-//     isVerified: doctor.isVerified,
-//   };
-// };
+const getDoctorById = async (id) => {
+    const doctor = await doctor_1.default.findById(id);
+    if (!doctor) {
+        throw new AppError_1.AppError("Doctor not found", 404);
+    }
+    return formatDoctor(doctor);
+};
+exports.getDoctorById = getDoctorById;
+/* ===============================
+   CREATE DOCTOR
+=============================== */
 const createDoctor = async (data) => {
-    const { firstName, lastName, email, password, specialization, experience, bio, clinicAddress, consultationFee, } = data;
-    console.log("📥 Incoming doctor payload:", data);
-    // 1. Check duplicate
-    const existingUser = await User_1.default.findOne({ email });
+    const existingUser = await User_1.default.findOne({ email: data.email });
     if (existingUser) {
         throw new AppError_1.AppError("Email already exists", 409);
     }
-    console.log("🟡 Creating user...");
-    // 2. CREATE USER FIRST
     const user = await User_1.default.create({
-        firstName,
-        lastName,
-        email,
-        password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
         role: "doctor",
     });
-    console.log("✅ USER CREATED:", user._id);
-    if (!user?._id) {
-        throw new AppError_1.AppError("User creation failed", 500);
-    }
-    console.log("🟡 Creating doctor...");
-    // 3. CREATE DOCTOR WITH userId
     const doctor = await doctor_1.default.create({
-        userId: user._id, // 🔥 FIXED
-        firstName,
-        lastName,
-        email,
-        password,
-        specialization,
-        experience,
-        bio: bio || "",
-        clinicAddress: clinicAddress || "",
-        consultationFee: consultationFee || 0,
+        userId: user._id,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        specialization: data.specialization,
+        experience: data.experience,
+        bio: data.bio || "",
+        clinicAddress: data.clinicAddress || "",
+        consultationFee: data.consultationFee || 0,
         isVerified: false,
     });
-    console.log("✅ DOCTOR CREATED:", doctor._id);
-    return {
-        id: doctor._id.toString(),
-        firstName: doctor.firstName,
-        lastName: doctor.lastName,
-        email: doctor.email,
-        specialization: doctor.specialization,
-        experience: doctor.experience,
-        isVerified: doctor.isVerified,
-    };
+    return formatDoctor(doctor);
 };
 exports.createDoctor = createDoctor;
 /* ===============================
+   UPDATE DOCTOR
+=============================== */
+const updateDoctor = async (id, data) => {
+    const doctor = await doctor_1.default.findById(id);
+    if (!doctor) {
+        throw new AppError_1.AppError("Doctor not found", 404);
+    }
+    Object.assign(doctor, data);
+    await doctor.save();
+    return formatDoctor(doctor);
+};
+exports.updateDoctor = updateDoctor;
+/* ===============================
    VERIFY DOCTOR
 =============================== */
-const verifyDoctor = async (doctorId) => {
-    const doctor = await doctor_1.default.findById(doctorId);
+const verifyDoctor = async (id) => {
+    const doctor = await doctor_1.default.findById(id);
     if (!doctor) {
         throw new AppError_1.AppError("Doctor not found", 404);
     }
     doctor.isVerified = true;
     await doctor.save();
-    return {
-        id: doctor._id.toString(),
-        isVerified: doctor.isVerified,
-    };
+    return formatDoctor(doctor);
 };
 exports.verifyDoctor = verifyDoctor;
 /* ===============================
    DELETE DOCTOR
 =============================== */
-const deleteDoctor = async (doctorId) => {
-    const doctor = await doctor_1.default.findById(doctorId);
+const deleteDoctor = async (id) => {
+    const doctor = await doctor_1.default.findById(id);
     if (!doctor) {
         throw new AppError_1.AppError("Doctor not found", 404);
     }
-    // ✅ also delete linked user (important)
-    await User_1.default.findByIdAndDelete(doctor.userId);
+    if (doctor.userId) {
+        await User_1.default.findByIdAndDelete(doctor.userId);
+    }
     await doctor.deleteOne();
     return {
         success: true,
@@ -149,15 +115,14 @@ const deleteDoctor = async (doctorId) => {
 };
 exports.deleteDoctor = deleteDoctor;
 /* ===============================
-   PATIENT MANAGEMENT
+   PATIENTS
 =============================== */
 const getAllPatients = async () => {
     const patients = await User_1.default.find({ role: "patient" }).select("-password");
     return patients.map((p) => ({
-        id: p._id.toString(),
+        _id: String(p._id),
         name: p.name,
         email: p.email,
-        createdAt: p.createdAt,
     }));
 };
 exports.getAllPatients = getAllPatients;
@@ -174,7 +139,7 @@ const deletePatient = async (patientId) => {
 };
 exports.deletePatient = deletePatient;
 /* ===============================
-   ADMIN MANAGEMENT
+   ADMIN
 =============================== */
 const createAdmin = async (data) => {
     const exists = await User_1.default.findOne({ email: data.email });
@@ -188,7 +153,7 @@ const createAdmin = async (data) => {
         role: "admin",
     });
     return {
-        id: admin._id.toString(),
+        _id: String(admin._id),
         name: admin.name,
         email: admin.email,
         role: admin.role,

@@ -1,8 +1,8 @@
 
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 
 /* ===============================
-   AXIOS INSTANCE (CLEAN SETUP)
+   AXIOS INSTANCE
 ================================= */
 
 const api = axios.create({
@@ -10,10 +10,11 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 15000,
 });
 
 /* ===============================
-   TOKEN INTERCEPTOR (SAFE)
+   TOKEN INTERCEPTOR
 ================================= */
 
 api.interceptors.request.use((config) => {
@@ -33,14 +34,14 @@ api.interceptors.request.use((config) => {
    TYPES
 ================================= */
 
-type AdminPayload = {
+export type AdminPayload = {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
 };
 
-type DoctorPayload = {
+export type DoctorPayload = {
   firstName: string;
   lastName: string;
   email: string;
@@ -52,14 +53,44 @@ type DoctorPayload = {
   consultationFee?: number;
 };
 
-type AppointmentStatus =
+export type AppointmentStatus =
   | "pending"
   | "confirmed"
   | "cancelled"
   | "completed";
 
-type AppointmentUpdatePayload = {
+export type AppointmentUpdatePayload = {
   status: AppointmentStatus;
+};
+
+/* ===============================
+   RESPONSE TYPES (STRICT)
+================================= */
+
+type ApiResponse<T> = {
+  data?: T;
+  doctor?: T;
+  doctors?: T;
+};
+
+/* ===============================
+   SAFE UNWRAPPER (NO ANY)
+================================= */
+
+const unwrap = <T>(
+  res: AxiosResponse<ApiResponse<T> | T>
+): T => {
+  const data = res.data;
+
+  if (data && typeof data === "object") {
+    const d = data as ApiResponse<T>;
+
+    if ("data" in d && d.data !== undefined) return d.data;
+    if ("doctor" in d && d.doctor !== undefined) return d.doctor;
+    if ("doctors" in d && d.doctors !== undefined) return d.doctors;
+  }
+
+  return data as T;
 };
 
 /* ===============================
@@ -67,86 +98,75 @@ type AppointmentUpdatePayload = {
 ================================= */
 
 export const adminApi = {
-  /* =========================
-     ADMIN
-  ========================= */
+  /* ================= ADMIN ================= */
 
   createAdmin: async (data: AdminPayload) => {
     const res = await api.post("/admin/create-admin", data);
-    return res.data;
+    return unwrap(res);
   },
 
   getAllAdmins: async () => {
     const res = await api.get("/admin/all");
-    return res.data;
+    return unwrap(res);
   },
 
   getAdminById: async (id: string) => {
     const res = await api.get(`/admin/${id}`);
-    return res.data;
+    return unwrap(res);
   },
 
   updateAdmin: async (id: string, data: Partial<AdminPayload>) => {
     const res = await api.patch(`/admin/${id}`, data);
-    return res.data;
+    return unwrap(res);
   },
 
   deleteAdmin: async (id: string) => {
     const res = await api.delete(`/admin/${id}`);
-    return res.data;
+    return unwrap(res);
   },
 
-  /* =========================
-     DOCTORS (FIXED ROUTES)
-     NOTE: MUST MATCH BACKEND
-  ========================= */
+  /* ================= DOCTORS ================= */
 
-  // ⚠️ Your backend currently does NOT show POST create doctor route.
-  // If backend exists, this is correct:
   createDoctor: async (data: DoctorPayload) => {
     const res = await api.post("/admin/doctors", data);
-    return res.data;
+    return unwrap(res);
   },
 
   getAllDoctors: async () => {
     const res = await api.get("/admin/doctors");
-    return res.data;
+    return unwrap(res);
   },
 
-  // ⚠️ Not present in your backend yet — will only work if you add it
   getDoctorById: async (id: string) => {
     const res = await api.get(`/admin/doctors/${id}`);
-    return res.data;
+    return unwrap(res);
   },
 
-  // ⚠️ Not present in your backend yet — optional
   updateDoctor: async (id: string, data: Partial<DoctorPayload>) => {
     const res = await api.patch(`/admin/doctors/${id}`, data);
-    return res.data;
+    return unwrap(res);
   },
 
   deleteDoctor: async (id: string) => {
     const res = await api.delete(`/admin/doctors/${id}`);
-    return res.data;
+    return unwrap(res);
   },
 
   verifyDoctor: async (id: string) => {
     const res = await api.patch(`/admin/doctors/${id}/verify`);
-    return res.data;
+    return unwrap(res);
   },
 
-  /* =========================
-     APPOINTMENTS
-  ========================= */
+  /* ================= APPOINTMENTS ================= */
 
   getAllAppointments: async () => {
     const res = await api.get("/appointments");
-    return res.data;
+    return unwrap(res);
   },
 
   getAppointmentById: async (id: string) => {
     const res = await api.get(`/appointments/${id}`);
-    return res.data;
+    return unwrap(res);
   },
 
   updateAppointmentStatus: async (
@@ -154,30 +174,36 @@ export const adminApi = {
     data: AppointmentUpdatePayload
   ) => {
     const res = await api.patch(`/appointments/${id}/status`, data);
-    return res.data;
+    return unwrap(res);
+  },
+
+  updateAppointment: async (
+    id: string,
+    data: Record<string, unknown>
+  ) => {
+    const res = await api.patch(`/appointments/${id}`, data);
+    return unwrap(res);
   },
 
   deleteAppointment: async (id: string) => {
     const res = await api.delete(`/appointments/${id}`);
-    return res.data;
+    return unwrap(res);
   },
 
-  /* =========================
-     PATIENTS
-  ========================= */
+  /* ================= PATIENTS ================= */
 
   getAllPatients: async () => {
     const res = await api.get("/patients");
-    return res.data;
+    return unwrap(res);
   },
 
   getPatientById: async (id: string) => {
     const res = await api.get(`/patients/${id}`);
-    return res.data;
+    return unwrap(res);
   },
 
   deletePatient: async (id: string) => {
     const res = await api.delete(`/patients/${id}`);
-    return res.data;
+    return unwrap(res);
   },
 };

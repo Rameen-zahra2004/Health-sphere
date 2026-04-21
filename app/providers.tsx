@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Provider as ReduxProvider } from "react-redux";
 import { store } from "@/app/Redux/store/store";
+import SocketProvider from "@/app/provider/SocketProvider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -11,7 +12,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute — API caching
+            staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
           },
         },
@@ -20,7 +21,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ReduxProvider store={store}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <SocketProvider>{children}</SocketProvider>
+      </QueryClientProvider>
     </ReduxProvider>
   );
 }

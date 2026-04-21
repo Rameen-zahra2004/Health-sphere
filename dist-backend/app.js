@@ -16,6 +16,7 @@ const medicalRecordRoutes_1 = __importDefault(require("./routes/medicalRecordRou
 const appointmentRoutes_1 = __importDefault(require("./routes/appointmentRoutes"));
 const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
 const doctorRoutes_1 = __importDefault(require("./routes/doctorRoutes"));
+const auth_route_1 = __importDefault(require("./routes/auth.route"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 /* =========================
@@ -66,9 +67,10 @@ app.use("/api/patients", patientRoutes_1.default);
 app.use("/api/medical-records", medicalRecordRoutes_1.default);
 app.use("/api/appointments", appointmentRoutes_1.default);
 app.use("/api/admin", admin_routes_1.default);
-app.use("/api", stats_route_1.default);
+app.use("/api/stats", stats_route_1.default);
 app.use("/api/availability", availability_routes_1.default);
 app.use("/api/doctors", doctorRoutes_1.default);
+app.use("/api/auth", auth_route_1.default);
 /* =========================
    404 HANDLER
 ========================= */

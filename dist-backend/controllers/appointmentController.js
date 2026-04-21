@@ -1,4 +1,8 @@
 "use strict";
+// import { Request, Response } from "express";
+// import { Types } from "mongoose";
+// import Appointment from "../models/Appointment";
+// import MedicalRecord from "../models/medicalRecord";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -8,8 +12,9 @@ const mongoose_1 = require("mongoose");
 const Appointment_1 = __importDefault(require("../models/Appointment"));
 const medicalRecord_1 = __importDefault(require("../models/medicalRecord"));
 const appointment_service_1 = require("../services/appointment.service");
+const socket_1 = require("../socket");
 /* =========================
-   SAFE ID NORMALIZER
+   HELPERS
 ========================= */
 const normalizeId = (id) => {
     if (!id)
@@ -17,38 +22,59 @@ const normalizeId = (id) => {
     return Array.isArray(id) ? id[0] : id;
 };
 const getUser = (req) => {
-    const user = req.user;
-    return user ?? null;
+    return req.user ?? null;
 };
 /* =========================
-   CREATE APPOINTMENT (PATIENT)
+   POPULATE HELPER ✅
+========================= */
+const getPopulatedAppointment = async (id) => {
+    return await Appointment_1.default.findById(id)
+        .populate("patientId", "firstName lastName email")
+        .populate("doctorId", "firstName lastName email")
+        .lean(); // better performance
+};
+/* =========================
+   SOCKET EMITTER (SAFE)
+========================= */
+const emitToUsers = async (doctorId, patientId, event, appointmentId) => {
+    const io = (0, socket_1.getIO)();
+    const populated = await getPopulatedAppointment(appointmentId);
+    if (!populated)
+        return;
+    io.to(`doctor-${doctorId}`).emit(event, populated);
+    io.to(`patient-${patientId}`).emit(event, populated);
+};
+/* =========================
+   CREATE APPOINTMENT
 ========================= */
 const createAppointment = async (req, res) => {
     try {
         const user = getUser(req);
         if (!user?.id) {
-            res.status(401).json({
+            return res.status(401).json({
                 success: false,
                 message: "Unauthorized",
             });
-            return;
         }
         const appointment = await (0, appointment_service_1.createAppointmentService)({
-            patientId: user.id,
-            ...req.body,
+            patientId: new mongoose_1.Types.ObjectId(user.id),
+            doctorId: new mongoose_1.Types.ObjectId(req.body.doctorId),
+            date: new Date(req.body.date),
+            time: req.body.time,
+            reason: req.body.reason,
         });
-        res.status(201).json({
+        await emitToUsers(appointment.doctorId.toString(), appointment.patientId.toString(), "appointment-created", appointment._id);
+        return res.status(201).json({
             success: true,
             message: "Appointment created successfully",
             data: appointment,
         });
     }
-    catch (error) {
-        res.status(400).json({
+    catch (err) {
+        const error = err;
+        return res.status(400).json({
             success: false,
-            message: error instanceof Error
-                ? error.message
-                : "Failed to create appointment",
+            message: error.message || "Failed to create appointment",
         });
     }
 };
@@ -60,24 +86,22 @@ const getMyAppointments = async (req, res) => {
     try {
         const user = getUser(req);
         if (!user?.id) {
-            res.status(401).json({
+            return res.status(401).json({
                 success: false,
                 message: "Unauthorized",
             });
-            return;
         }
         const appointments = await (0, appointment_service_1.getAppointmentsByPatientService)(user.id);
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: appointments,
         });
     }
-    catch (error) {
-        res.status(500).json({
+    catch (err) {
+        const error = err;
+        return res.status(500).json({
             success: false,
-            message: error instanceof Error
-                ? error.message
-                : "Failed to fetch appointments",
+            message: error.message || "Failed to fetch appointments",
         });
     }
 };
@@ -89,118 +113,108 @@ const getAllAppointmentsForDoctor = async (req, res) => {
     try {
         const user = getUser(req);
         if (!user?.id) {
-            res.status(401).json({
+            return res.status(401).json({
                 success: false,
                 message: "Unauthorized",
             });
-            return;
         }
         const appointments = await Appointment_1.default.find({
-            doctorId: user.id,
+            doctorId: new mongoose_1.Types.ObjectId(user.id),
         })
-            .populate("patientId", "name email")
+            .populate("patientId", "firstName lastName email")
+            .populate("doctorId", "firstName lastName email")
             .populate("medicalRecordId")
             .sort({ date: 1, time: 1 });
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: appointments,
         });
     }
-    catch (error) {
-        res.status(500).json({
+    catch (err) {
+        const error = err;
+        return res.status(500).json({
             success: false,
-            message: error instanceof Error
-                ? error.message
-                : "Failed to fetch appointments",
+            message: error.message || "Failed to fetch appointments",
         });
     }
 };
 exports.getAllAppointmentsForDoctor = getAllAppointmentsForDoctor;
 /* =========================
-   UPDATE APPOINTMENT STATUS
+   UPDATE STATUS
 ========================= */
 const updateAppointmentStatus = async (req, res) => {
     try {
-        const rawId = normalizeId(req.params.id);
+        const id = normalizeId(req.params.id);
         const { status } = req.body;
-        if (!rawId || !mongoose_1.Types.ObjectId.isValid(rawId)) {
-            res.status(400).json({
+        if (!id || !mongoose_1.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
                 success: false,
                 message: "Invalid appointment ID",
             });
-            return;
         }
-        const appointment = await Appointment_1.default.findById(rawId);
+        const appointment = await Appointment_1.default.findById(id);
         if (!appointment) {
-            res.status(404).json({
+            return res.status(404).json({
                 success: false,
                 message: "Appointment not found",
             });
-            return;
         }
         appointment.status = status;
         await appointment.save();
-        res.status(200).json({
+        await emitToUsers(appointment.doctorId.toString(), appointment.patientId.toString(), "appointment-updated", appointment._id);
+        return res.status(200).json({
             success: true,
             message: "Status updated successfully",
             data: appointment,
         });
     }
-    catch (error) {
-        res.status(500).json({
+    catch (err) {
+        const error = err;
+        return res.status(500).json({
             success: false,
-            message: error instanceof Error ? error.message : "Failed to update status",
+            message: error.message || "Failed to update status",
         });
     }
 };
 exports.updateAppointmentStatus = updateAppointmentStatus;
 /* =========================
-   COMPLETE APPOINTMENT + LINK RECORD
+   COMPLETE APPOINTMENT
 ========================= */
 const completeAppointmentWithRecord = async (req, res) => {
     try {
-        const appointmentId = normalizeId(req.params.id);
+        const id = normalizeId(req.params.id);
         const { medicalRecordId } = req.body;
-        if (!appointmentId || !mongoose_1.Types.ObjectId.isValid(appointmentId)) {
-            res.status(400).json({
+        if (!id || !mongoose_1.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
                 success: false,
                 message: "Invalid appointment ID",
             });
-            return;
         }
-        const appointment = await Appointment_1.default.findById(appointmentId);
+        const appointment = await Appointment_1.default.findById(id);
         if (!appointment) {
-            res.status(404).json({
+            return res.status(404).json({
                 success: false,
                 message: "Appointment not found",
             });
-            return;
-        }
-        if (!medicalRecordId) {
-            res.status(400).json({
-                success: false,
-                message: "MedicalRecord ID is required",
-            });
-            return;
         }
         appointment.status = "completed";
-        appointment.medicalRecordId = medicalRecordId;
+        appointment.medicalRecordId = new mongoose_1.Types.ObjectId(medicalRecordId);
         await appointment.save();
         await medicalRecord_1.default.findByIdAndUpdate(medicalRecordId, {
             appointmentId: appointment._id,
         });
-        res.status(200).json({
+        await emitToUsers(appointment.doctorId.toString(), appointment.patientId.toString(), "appointment-completed", appointment._id);
+        return res.status(200).json({
             success: true,
-            message: "Appointment completed and linked successfully",
+            message: "Appointment completed successfully",
             data: appointment,
         });
     }
-    catch (error) {
-        res.status(500).json({
+    catch (err) {
+        const error = err;
+        return res.status(500).json({
             success: false,
-            message: error instanceof Error
-                ? error.message
-                : "Failed to complete appointment",
+            message: error.message || "Failed to complete appointment",
         });
     }
 };
@@ -210,32 +224,32 @@ exports.completeAppointmentWithRecord = completeAppointmentWithRecord;
 ========================= */
 const cancelAppointment = async (req, res) => {
     try {
-        const rawId = normalizeId(req.params.id);
-        if (!rawId || !mongoose_1.Types.ObjectId.isValid(rawId)) {
-            res.status(400).json({
+        const id = normalizeId(req.params.id);
+        if (!id || !mongoose_1.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
                 success: false,
                 message: "Invalid appointment ID",
             });
-            return;
         }
-        const appointment = await Appointment_1.default.findByIdAndUpdate(rawId, { status: "cancelled" }, { new: true });
+        const appointment = await Appointment_1.default.findByIdAndUpdate(id, { status: "cancelled" }, { new: true });
         if (!appointment) {
-            res.status(404).json({
+            return res.status(404).json({
                 success: false,
                 message: "Appointment not found",
             });
-            return;
         }
-        res.status(200).json({
+        await emitToUsers(appointment.doctorId.toString(), appointment.patientId.toString(), "appointment-cancelled", appointment._id);
+        return res.status(200).json({
             success: true,
             message: "Appointment cancelled successfully",
             data: appointment,
         });
     }
-    catch (error) {
-        res.status(500).json({
+    catch (err) {
+        const error = err;
+        return res.status(500).json({
             success: false,
-            message: error instanceof Error ? error.message : "Failed to cancel appointment",
+            message: error.message || "Failed to cancel appointment",
         });
     }
 };

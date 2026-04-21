@@ -18,18 +18,24 @@ const patientIdSchema = zod_1.z.object({
     id: zod_1.z.string().min(1, "Patient ID required"),
 });
 /* ===============================
-   DOCTOR ROUTES
+   DOCTOR ROUTES (FULL CRUD)
 =============================== */
 /**
- * GET ALL DOCTORS (ADMIN)
+ * GET ALL DOCTORS
  */
-router.get("/doctors", authMiddleware_1.protect, // 🔥 MUST COME FIRST
-admin_middleware_1.isAdmin, admin_controller_1.getAllDoctors);
+router.get("/doctors", authMiddleware_1.protect, admin_middleware_1.isAdmin, admin_controller_1.getAllDoctors);
 /**
- * CREATE DOCTOR (ADMIN)
+ * GET SINGLE DOCTOR
  */
-router.post("/doctors", authMiddleware_1.protect, // 🔥 REQUIRED
-admin_middleware_1.isAdmin, admin_controller_1.createDoctor);
+router.get("/doctors/:id", authMiddleware_1.protect, admin_middleware_1.isAdmin, (0, validationMiddleware_1.validateParams)(doctorValidator_1.doctorIdSchema), admin_controller_1.getDoctorById);
+/**
+ * CREATE DOCTOR
+ */
+router.post("/doctors", authMiddleware_1.protect, admin_middleware_1.isAdmin, admin_controller_1.createDoctor);
+/**
+ * UPDATE DOCTOR
+ */
+router.patch("/doctors/:id", authMiddleware_1.protect, admin_middleware_1.isAdmin, (0, validationMiddleware_1.validateParams)(doctorValidator_1.doctorIdSchema), admin_controller_1.updateDoctor);
 /**
  * VERIFY DOCTOR
  */

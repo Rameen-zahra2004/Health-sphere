@@ -7,12 +7,16 @@ import { validateParams } from "../middleware/validationMiddleware";
 
 import {
   getAllDoctors,
+  getDoctorById,
+  createDoctor,
+  updateDoctor,
   verifyDoctor,
   deleteDoctor,
+
   getAllPatients,
   deletePatient,
+
   createAdmin,
-  createDoctor, // ✅ FIXED: ADD THIS
 } from "../controllers/admin.controller";
 
 import { doctorIdSchema } from "../validators/doctorValidator";
@@ -22,32 +26,55 @@ const router = express.Router();
 /* ===============================
    PATIENT ID VALIDATION
 =============================== */
+
 const patientIdSchema = z.object({
   id: z.string().min(1, "Patient ID required"),
 });
 
 /* ===============================
-   DOCTOR ROUTES
+   DOCTOR ROUTES (FULL CRUD)
 =============================== */
 
 /**
- * GET ALL DOCTORS (ADMIN)
+ * GET ALL DOCTORS
  */
 router.get(
   "/doctors",
-  protect,      // 🔥 MUST COME FIRST
+  protect,
   isAdmin,
   getAllDoctors
 );
 
 /**
- * CREATE DOCTOR (ADMIN)
+ * GET SINGLE DOCTOR
+ */
+router.get(
+  "/doctors/:id",
+  protect,
+  isAdmin,
+  validateParams(doctorIdSchema),
+  getDoctorById
+);
+
+/**
+ * CREATE DOCTOR
  */
 router.post(
   "/doctors",
-  protect,      // 🔥 REQUIRED
+  protect,
   isAdmin,
   createDoctor
+);
+
+/**
+ * UPDATE DOCTOR
+ */
+router.patch(
+  "/doctors/:id",
+  protect,
+  isAdmin,
+  validateParams(doctorIdSchema),
+  updateDoctor
 );
 
 /**

@@ -12,6 +12,7 @@ import medicalRecordRoutes from "./routes/medicalRecordRoutes";
 import appointmentRoutes from "./routes/appointmentRoutes";
 import adminRoutes from "./routes/admin.routes";
 import doctorRoutes from "./routes/doctorRoutes";
+import authRoutes from "./routes/auth.route";
 dotenv.config();
 
 const app = express();
@@ -75,9 +76,10 @@ app.use("/api/patients", patientRoutes);
 app.use("/api/medical-records", medicalRecordRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api", statsRoutes);
+app.use("/api/stats", statsRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/doctors", doctorRoutes);
+app.use("/api/auth", authRoutes);
 /* =========================
    404 HANDLER
 ========================= */

@@ -1,4 +1,3 @@
-
 import {
   createAsyncThunk,
   createSlice,
@@ -7,6 +6,7 @@ import {
 
 import { adminApi } from "@/app/lib/api/adminApi";
 import type { AsyncState } from "../types/common";
+import type { Appointment } from "@/app/types/appointment";
 
 /* ================= TYPES ================= */
 
@@ -37,27 +37,10 @@ export interface Patient {
   email: string;
 }
 
-export interface Appointment {
-  _id: string;
-  doctorId: string;
-  patientId: string;
-  status: "pending" | "confirmed" | "cancelled" | "completed";
-  date?: string;
-}
-
-/* ================= REQUEST TYPES ================= */
-
-export type CreateAdminDTO = Omit<Admin, "_id" | "role"> & {
-  password: string;
-};
+/* ================= DTO ================= */
 
 export type CreateDoctorDTO = Omit<Doctor, "_id"> & {
   password: string;
-};
-
-export type UpdateAppointmentStatusDTO = {
-  id: string;
-  status: Appointment["status"];
 };
 
 /* ================= STATE ================= */
@@ -68,198 +51,132 @@ interface AdminState extends AsyncState {
   patients: Patient[];
   appointments: Appointment[];
 
-  currentAdmin: Admin | null;
-  currentDoctor: Doctor | null;
-  currentPatient: Patient | null;
-  currentAppointment: Appointment | null;
+  selectedDoctor: Doctor | null;
+  selectedPatient: Patient | null;
+  selectedAppointment: Appointment | null;
 
   actionLoading: boolean;
 }
+
 const initialState: AdminState = {
   admins: [],
   doctors: [],
   patients: [],
   appointments: [],
 
-  currentAdmin: null,
-  currentDoctor: null,
-  currentPatient: null,
-  currentAppointment: null,
+  selectedDoctor: null,
+  selectedPatient: null,
+  selectedAppointment: null,
 
   loading: false,
   actionLoading: false,
   error: null,
-
-  status: "idle", // ✅ FIXED
+  status: "idle",
 };
 
-/* ================= ERROR HANDLER ================= */
+/* ================= ERROR ================= */
 
 const getErrorMessage = (error: unknown): string => {
-  const err = error as {
-    response?: { data?: { message?: string } };
-    message?: string;
-  };
-
-  return err.response?.data?.message || err.message || "Something went wrong";
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const err = error as any;
+    return err.response?.data?.message || err.message || "Error";
+  }
+  return "Something went wrong";
 };
 
-/* ================= SAFE RESPONSE ================= */
-
-type ApiResponse<T> = {
-  data: T;
-};
-
-function getData<T>(response: unknown): T {
-  const res = response as ApiResponse<T>;
-
-  if (!res || typeof res !== "object") {
-    throw new Error("Invalid API response");
-  }
-
-  return res.data;
-}
-
 /* =====================================================
-   🟦 ADMIN THUNKS
+   DOCTORS
 ===================================================== */
 
-export const fetchAdmins = createAsyncThunk<
-  Admin[],
-  void,
-  { rejectValue: string }
->("admin/fetchAdmins", async (_, thunkAPI) => {
-  try {
-    return getData<Admin[]>(await adminApi.getAllAdmins());
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
+export const fetchDoctors = createAsyncThunk<Doctor[]>(
+  "admin/fetchDoctors",
+  async (_, thunkAPI) => {
+    try {
+      return await adminApi.getAllDoctors();
+    } catch (err) {
+      return thunkAPI.rejectWithValue(getErrorMessage(err));
+    }
   }
-});
+);
 
-export const createAdmin = createAsyncThunk<
-  Admin,
-  CreateAdminDTO,
-  { rejectValue: string }
->("admin/createAdmin", async (data, thunkAPI) => {
-  try {
-    return getData<Admin>(await adminApi.createAdmin(data));
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
+export const fetchDoctorById = createAsyncThunk<Doctor, string>(
+  "admin/fetchDoctorById",
+  async (id, thunkAPI) => {
+    try {
+      return await adminApi.getDoctorById(id);
+    } catch (err) {
+      return thunkAPI.rejectWithValue(getErrorMessage(err));
+    }
   }
-});
+);
 
-export const deleteAdmin = createAsyncThunk<
-  string,
-  string,
-  { rejectValue: string }
->("admin/deleteAdmin", async (id, thunkAPI) => {
-  try {
-    await adminApi.deleteAdmin(id);
-    return id;
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
+export const createDoctor = createAsyncThunk<Doctor, CreateDoctorDTO>(
+  "admin/createDoctor",
+  async (data, thunkAPI) => {
+    try {
+      return await adminApi.createDoctor(data);
+    } catch (err) {
+      return thunkAPI.rejectWithValue(getErrorMessage(err));
+    }
   }
-});
+);
 
-/* =====================================================
-   🟩 DOCTOR THUNKS
-===================================================== */
-
-export const fetchDoctors = createAsyncThunk<
-  Doctor[],
-  void,
-  { rejectValue: string }
->("admin/fetchDoctors", async (_, thunkAPI) => {
-  try {
-    return getData<Doctor[]>(await adminApi.getAllDoctors());
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
-  }
-});
-
-export const createDoctor = createAsyncThunk<
+export const updateDoctorById = createAsyncThunk<
   Doctor,
-  CreateDoctorDTO,
-  { rejectValue: string }
->("admin/createDoctor", async (data, thunkAPI) => {
+  { id: string; data: Partial<CreateDoctorDTO> }
+>("admin/updateDoctorById", async ({ id, data }, thunkAPI) => {
   try {
-    const payload = {
-      ...data,
-      bio: data.bio ?? "", // ✅ FIX HERE
-      clinicAddress: data.clinicAddress ?? "",
-      consultationFee: data.consultationFee ?? 0,
-    };
-
-    return getData<Doctor>(
-      await adminApi.createDoctor(payload)
-    );
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
+    return await adminApi.updateDoctor(id, data);
+  } catch (err) {
+    return thunkAPI.rejectWithValue(getErrorMessage(err));
   }
 });
 
-export const deleteDoctor = createAsyncThunk<
-  string,
-  string,
-  { rejectValue: string }
->("admin/deleteDoctor", async (id, thunkAPI) => {
-  try {
-    await adminApi.deleteDoctor(id);
-    return id;
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
+export const deleteDoctor = createAsyncThunk<string, string>(
+  "admin/deleteDoctor",
+  async (id, thunkAPI) => {
+    try {
+      await adminApi.deleteDoctor(id);
+      return id;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(getErrorMessage(err));
+    }
   }
-});
+);
 
 /* =====================================================
-   🟨 PATIENT THUNKS
+   PATIENTS
 ===================================================== */
 
-export const fetchPatients = createAsyncThunk<
-  Patient[],
-  void,
-  { rejectValue: string }
->("admin/fetchPatients", async (_, thunkAPI) => {
-  try {
-    return getData<Patient[]>(await adminApi.getAllPatients());
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
+export const fetchPatients = createAsyncThunk<Patient[]>(
+  "admin/fetchPatients",
+  async (_, thunkAPI) => {
+    try {
+      return await adminApi.getAllPatients();
+    } catch (err) {
+      return thunkAPI.rejectWithValue(getErrorMessage(err));
+    }
   }
-});
+);
 
 /* =====================================================
-   🟧 APPOINTMENT THUNKS
+   APPOINTMENTS
 ===================================================== */
 
-export const fetchAppointments = createAsyncThunk<
-  Appointment[],
-  void,
-  { rejectValue: string }
->("admin/fetchAppointments", async (_, thunkAPI) => {
-  try {
-    return getData<Appointment[]>(await adminApi.getAllAppointments());
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
+export const fetchAppointments = createAsyncThunk<Appointment[]>(
+  "admin/fetchAppointments",
+  async (_, thunkAPI) => {
+    try {
+      return await adminApi.getAllAppointments();
+    } catch (err) {
+      return thunkAPI.rejectWithValue(getErrorMessage(err));
+    }
   }
-});
+);
 
-export const updateAppointmentStatus = createAsyncThunk<
-  Appointment,
-  UpdateAppointmentStatusDTO,
-  { rejectValue: string }
->("admin/updateAppointmentStatus", async (data, thunkAPI) => {
-  try {
-    const res = await adminApi.updateAppointmentStatus(data.id, {
-      status: data.status,
-    });
-
-    return getData<Appointment>(res);
-  } catch (error) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error));
-  }
-});
-
-/* ================= SLICE ================= */
+/* =====================================================
+   SLICE
+===================================================== */
 
 const adminSlice = createSlice({
   name: "admin",
@@ -272,74 +189,63 @@ const adminSlice = createSlice({
       state.error = null;
     },
 
-    setCurrentAdmin(state, action: PayloadAction<Admin | null>) {
-      state.currentAdmin = action.payload;
-    },
-
+    /* ================= IMPORTANT ================= */
     setCurrentDoctor(state, action: PayloadAction<Doctor | null>) {
-      state.currentDoctor = action.payload;
-    },
-
-    setCurrentPatient(state, action: PayloadAction<Patient | null>) {
-      state.currentPatient = action.payload;
-    },
-
-    setCurrentAppointment(state, action: PayloadAction<Appointment | null>) {
-      state.currentAppointment = action.payload;
+      state.selectedDoctor = action.payload;
     },
   },
 
   extraReducers: (builder) => {
     builder
 
-      /* DOCTORS */
+      /* ===== DOCTORS ===== */
       .addCase(fetchDoctors.fulfilled, (state, action) => {
         state.doctors = action.payload;
       })
+
+      .addCase(fetchDoctorById.fulfilled, (state, action) => {
+        state.selectedDoctor = action.payload;
+      })
+
       .addCase(createDoctor.fulfilled, (state, action) => {
         state.doctors.unshift(action.payload);
       })
-      .addCase(deleteDoctor.fulfilled, (state, action) => {
-        state.doctors = state.doctors.filter(d => d._id !== action.payload);
+
+      .addCase(updateDoctorById.fulfilled, (state, action) => {
+        const updated = action.payload;
+
+        const index = state.doctors.findIndex(
+          (d) => d._id === updated._id
+        );
+
+        if (index !== -1) {
+          state.doctors[index] = updated;
+        }
+
+        state.selectedDoctor = updated;
       })
 
-      /* PATIENTS */
+      .addCase(deleteDoctor.fulfilled, (state, action) => {
+        state.doctors = state.doctors.filter(
+          (d) => d._id !== action.payload
+        );
+      })
+
+      /* ===== PATIENTS ===== */
       .addCase(fetchPatients.fulfilled, (state, action) => {
         state.patients = action.payload;
       })
 
-      /* APPOINTMENTS */
+      /* ===== APPOINTMENTS ===== */
       .addCase(fetchAppointments.fulfilled, (state, action) => {
         state.appointments = action.payload;
-      })
-      .addCase(updateAppointmentStatus.fulfilled, (state, action) => {
-        const index = state.appointments.findIndex(
-          a => a._id === action.payload._id
-        );
-        if (index !== -1) {
-          state.appointments[index] = action.payload;
-        }
-      })
-
-      /* ADMINS */
-      .addCase(fetchAdmins.fulfilled, (state, action) => {
-        state.admins = action.payload;
-      })
-      .addCase(createAdmin.fulfilled, (state, action) => {
-        state.admins.unshift(action.payload);
-      })
-      .addCase(deleteAdmin.fulfilled, (state, action) => {
-        state.admins = state.admins.filter(a => a._id !== action.payload);
       });
   },
 });
 
 export const {
   clearAdminState,
-  setCurrentAdmin,
   setCurrentDoctor,
-  setCurrentPatient,
-  setCurrentAppointment,
 } = adminSlice.actions;
 
 export default adminSlice.reducer;

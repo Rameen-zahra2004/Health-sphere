@@ -6,7 +6,7 @@
     "moduleResolution": "NodeNext",
 
     "rootDir": ".",
-    "outDir": "dist",
+    "outDir": "../dist-backend",
 
     "strict": true,
     "esModuleInterop": true,
@@ -14,13 +14,10 @@
     "skipLibCheck": true,
 
     "forceConsistentCasingInFileNames": true,
-    "allowJs": false,
-    "declaration": false,
-    "sourceMap": false,
 
     "types": ["node"]
   },
 
-  "include": ["**/*.ts", "**/*.d.ts"],
-  "exclude": ["node_modules", ".next", "dist"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "dist-backend"]
 }
