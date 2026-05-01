@@ -16,9 +16,21 @@ const api = axios.create({
 
 /* ================= REQUEST INTERCEPTOR ================= */
 
+// api.interceptors.request.use((config) => {
+//   if (typeof window !== "undefined") {
+//    const token = localStorage.getItem("accessToken");
+
+//     if (token) {
+//       config.headers = config.headers ?? {};
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//   }
+
+//   return config;
+// });
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken"); // FIXED
 
     if (token) {
       config.headers = config.headers ?? {};
@@ -28,7 +40,6 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
-
 /* ================= RESPONSE INTERCEPTOR ================= */
 
 api.interceptors.response.use(
