@@ -1,101 +1,91 @@
 import { Request, Response } from "express";
-import { AIOrchestrator } from "../modules/ai/core/ai.orchestrator";
-import { AIMessage, HealthContext } from "../types/aiTypes";
 
-/**
- * 🧩 Stream request body (strict)
- */
-interface StreamRequestBody {
-  message: string;
-  history: AIMessage[];
-  healthContext?: HealthContext;
+type AIRole = "system" | "user" | "assistant";
+
+interface AIMessage {
+  role: AIRole;
+  content: string;
 }
 
-/**
- * 📡 SSE helper
- */
-const sendSSE = (res: Response, data: string) => {
-  res.write(`data: ${data}\n\n`);
-};
+interface StreamRequestBody {
+  message?: string;
+  messages?: AIMessage[];
+  mode?: "public" | "patient" | "admin";
+}
 
-/**
- * 🚀 PRODUCTION STREAM CONTROLLER
- */
+/* =========================
+   CONTROLLER (CLEAN SSE)
+========================= */
+
 export const streamAIChat = async (
-  req: Request<Record<string, never>, unknown, StreamRequestBody>,
+  req: Request<unknown, unknown, StreamRequestBody>,
   res: Response
 ): Promise<void> => {
+  let isClosed = false;
+
   try {
-    const { message, history, healthContext } = req.body;
+    const { messages, message } = req.body;
 
-    // 🔐 validation
-    if (typeof message !== "string" || !message.trim()) {
-      res.status(400).json({ error: "Invalid message" });
+    if (
+      (!messages || !Array.isArray(messages)) &&
+      typeof message !== "string"
+    ) {
+      res.status(400).json({
+        error: "Invalid input",
+      });
       return;
     }
 
-    if (!Array.isArray(history)) {
-      res.status(400).json({ error: "Invalid history format" });
-      return;
-    }
+    /* =========================
+       SSE HEADERS
+    ========================= */
 
-    // 📡 SSE headers
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no");
+
     res.flushHeaders?.();
 
-    // 🤖 AI Orchestrator (FIXED TYPE HANDLING)
-    const orchestratorResult = await AIOrchestrator({
-      message,
-      history,
-      healthContext
+    req.on("close", () => {
+      isClosed = true;
     });
 
-    // 🛡️ safety check
-    if (
-      !orchestratorResult ||
-      typeof orchestratorResult.content !== "string"
-    ) {
-      throw new Error("Invalid AI response from orchestrator");
+    /* =========================
+       BUILD RESPONSE
+    ========================= */
+
+    const lastMessage =
+      messages?.[messages.length - 1]?.content || message || "";
+
+    const responseText = `You said: ${lastMessage}`;
+
+    /* =========================
+       STREAM ONLY TEXT (NO JSON)
+    ========================= */
+
+    for (const char of responseText) {
+      if (isClosed) break;
+
+      res.write(`data: ${char}\n\n`);
+
+      await new Promise((r) => setTimeout(r, 15));
     }
 
-    const fullResponse = orchestratorResult.content;
+    /* =========================
+       END STREAM
+    ========================= */
 
-    // ⚡ stream simulation (word-by-word)
-    const words = fullResponse.split(" ").filter(Boolean);
-
-    let index = 0;
-
-    const interval = setInterval(() => {
-      if (res.writableEnded) {
-        clearInterval(interval);
-        return;
-      }
-
-      if (index < words.length) {
-        sendSSE(res, words[index]);
-        index++;
-      } else {
-        sendSSE(res, "[DONE]");
-        clearInterval(interval);
-        res.end();
-      }
-    }, 25);
-
-    // 🔌 cleanup on disconnect
-    req.on("close", () => {
-      clearInterval(interval);
+    if (!isClosed) {
+      res.write(`data: [DONE]\n\n`);
       res.end();
-    });
+    }
   } catch (error) {
-    console.error("AI Stream Error:", error);
+    console.error(error);
 
     if (!res.headersSent) {
-      res.status(500).json({ error: "AI stream failed" });
+      res.status(500).json({ error: "Stream failed" });
     } else {
-      sendSSE(res, "error");
+      res.write(`data: [ERROR]\n\n`);
       res.end();
     }
   }

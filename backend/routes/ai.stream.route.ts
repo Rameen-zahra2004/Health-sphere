@@ -4,6 +4,10 @@ import { streamAIChat } from "../controllers/ai.stream.controller";
 
 const router = Router();
 
-router.post("/stream", validateChatRequest, streamAIChat);
+/**
+ * FINAL ENDPOINT:
+ * POST /api/ai/stream
+ */
+router.post("/", validateChatRequest, streamAIChat);
 
 export default router;

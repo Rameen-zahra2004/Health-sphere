@@ -1,16 +1,19 @@
-export type AIRole = "system" | "user" | "assistant";
+/* =========================
+   💬 MESSAGE ROLES (LLM)
+========================= */
+export type AIMessageRole = "system" | "user" | "assistant";
 
 /**
- * 💬 Standard AI message format (used everywhere)
+ * 💬 Standard AI message format
  */
 export interface AIMessage {
-  role: AIRole;
+  role: AIMessageRole;
   content: string;
 }
 
-/**
- * 🧠 Health context (medical AI safe structure)
- */
+/* =========================
+   🧠 HEALTH CONTEXT
+========================= */
 export interface HealthContext {
   userId?: string;
   age?: number;
@@ -27,18 +30,49 @@ export interface HealthContext {
   metadata?: Record<string, unknown>;
 }
 
+/* =========================
+   🔐 AI SYSTEM ROLE (FIXED)
+========================= */
+export type AISystemRole = "public" | "patient" | "admin";
+
 /**
- * 🚀 AI Engine Options
+ * 🔐 Runtime identity context
  */
+export interface AIIdentityContext {
+  userId?: string;
+  sessionId?: string;
+  role?: AISystemRole;
+}
+
+/* =========================
+   🧩 ORCHESTRATOR INPUT
+========================= */
+export interface AIOrchestratorInput extends AIIdentityContext {
+  message: string;
+  history: AIMessage[];
+  healthContext?: HealthContext;
+}
+
+/* =========================
+   📤 OUTPUT
+========================= */
+export interface AIOrchestratorOutput {
+  content: string;
+  raw: unknown;
+}
+
+/* =========================
+   ⚙️ ENGINE OPTIONS
+========================= */
 export interface AIEngineOptions {
   model?: "gpt-4o-mini" | "gpt-4o" | "gpt-4.1-mini";
   temperature?: number;
   maxTokens?: number;
 }
 
-/**
- * 🤖 OpenAI response (safe)
- */
+/* =========================
+   🤖 OPENAI RESPONSE
+========================= */
 export interface OpenAIChoice {
   message?: {
     content?: string;
@@ -49,26 +83,9 @@ export interface OpenAIResponse {
   choices: OpenAIChoice[];
 }
 
-/**
- * 🧩 Orchestrator input
- */
-export interface AIOrchestratorInput {
-  message: string;
-  history: AIMessage[];
-  healthContext?: HealthContext;
-}
-
-/**
- * 📤 Orchestrator output
- */
-export interface AIOrchestratorOutput {
-  content: string;
-  raw: unknown;
-}
-
-/**
- * 🧠 Persona options
- */
+/* =========================
+   🧠 PERSONA
+========================= */
 export interface PersonaOptions {
   injectSafetyRules?: boolean;
   type?: "health" | "fitness" | "mental" | "general";

@@ -5,6 +5,10 @@
 // import helmet from "helmet";
 // import morgan from "morgan";
 // import rateLimit from "express-rate-limit";
+
+// /* =========================
+//    ROUTES IMPORTS
+// ========================= */
 // import availabilityRoutes from "./routes/availability.routes";
 // import patientRoutes from "./routes/patientRoutes";
 // import statsRoutes from "./routes/stats.route";
@@ -13,36 +17,36 @@
 // import adminRoutes from "./routes/admin.routes";
 // import doctorRoutes from "./routes/doctorRoutes";
 // import authRoutes from "./routes/auth.route";
+
+// /* 🤖 AI ROUTES (NEW) */
+// import aiRoutes from "./routes/ai.routes";
+// import aiStreamRoutes from "./routes/ai.stream.route";
+
 // dotenv.config();
 
 // const app = express();
+
+// /* =========================
+//    ALLOWED ORIGINS
+// ========================= */
 // const allowedOrigins = [
 //   "http://localhost:3000",
 //   "http://localhost:5173",
 //   "http://localhost:4200",
 //   process.env.CLIENT_URL,
 // ].filter(Boolean) as string[];
+
 // /* =========================
 //    TRUST PROXY
 // ========================= */
 // app.set("trust proxy", 1);
 
 // /* =========================
-//    SECURITY
+//    SECURITY (CORS + HELMET)
 // ========================= */
-// // app.use(
-// //   cors({
-// //     origin: [
-// //       "http://localhost:3000",
-// //       "https://health-sphere-ann395tkm-rameen-zahra2004s-projects.vercel.app"
-// //     ],
-// //     credentials: true,
-// //   })
-// // );
 // app.use(
 //   cors({
 //     origin: (origin, callback) => {
-//       // allow Postman, mobile apps, curl
 //       if (!origin) return callback(null, true);
 
 //       if (allowedOrigins.includes(origin)) {
@@ -52,12 +56,12 @@
 //       console.warn(`⚠️ CORS blocked: ${origin}`);
 //       return callback(new Error("Not allowed by CORS"));
 //     },
-
 //     credentials: true,
 //     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 //     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 //   })
 // );
+
 // app.use(helmet());
 
 // /* =========================
@@ -96,7 +100,7 @@
 // });
 
 // /* =========================
-//    🚨 FIXED ROUTES ORDER
+//    🚀 API ROUTES
 // ========================= */
 // app.use("/api/patients", patientRoutes);
 // app.use("/api/medical-records", medicalRecordRoutes);
@@ -106,6 +110,13 @@
 // app.use("/api/availability", availabilityRoutes);
 // app.use("/api/doctors", doctorRoutes);
 // app.use("/api/auth", authRoutes);
+
+// /* =========================
+//    🤖 AI MODULE ROUTES (ADDED)
+// ========================= */
+// app.use("/api/ai", aiRoutes);
+// app.use("/api/ai", aiStreamRoutes);
+
 // /* =========================
 //    404 HANDLER
 // ========================= */
@@ -124,8 +135,22 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 
+dotenv.config();
+
+const app = express();
+
 /* =========================
-   ROUTES IMPORTS
+   TRUST PROXY
+========================= */
+app.set("trust proxy", 1);
+
+/* =========================
+   BOOT AI SYSTEM
+========================= */
+import "./modules/ai";
+
+/* =========================
+   ROUTES
 ========================= */
 import availabilityRoutes from "./routes/availability.routes";
 import patientRoutes from "./routes/patientRoutes";
@@ -136,16 +161,14 @@ import adminRoutes from "./routes/admin.routes";
 import doctorRoutes from "./routes/doctorRoutes";
 import authRoutes from "./routes/auth.route";
 
-/* 🤖 AI ROUTES (NEW) */
-import aiRoutes from "./routes/ai.routes";
+/* 🤖 AI ROUTES */
+import aiPublicRoutes from "./routes/ai.public.route";
+import aiPatientRoutes from "./routes/ai.patient.route";
+import aiAdminRoutes from "./routes/ai.admin.route";
 import aiStreamRoutes from "./routes/ai.stream.route";
 
-dotenv.config();
-
-const app = express();
-
 /* =========================
-   ALLOWED ORIGINS
+   ORIGINS
 ========================= */
 const allowedOrigins = [
   "http://localhost:3000",
@@ -155,12 +178,7 @@ const allowedOrigins = [
 ].filter(Boolean) as string[];
 
 /* =========================
-   TRUST PROXY
-========================= */
-app.set("trust proxy", 1);
-
-/* =========================
-   SECURITY (CORS + HELMET)
+   MIDDLEWARE
 ========================= */
 app.use(
   cors({
@@ -171,32 +189,21 @@ app.use(
         return callback(null, true);
       }
 
-      console.warn(`⚠️ CORS blocked: ${origin}`);
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
 app.use(helmet());
 
-/* =========================
-   RATE LIMIT
-========================= */
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 1000,
-    standardHeaders: true,
-    legacyHeaders: false,
   })
 );
 
-/* =========================
-   BODY PARSER
-========================= */
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -208,17 +215,17 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 /* =========================
-   HEALTH CHECK
+   HEALTH
 ========================= */
 app.get("/health", (_req: Request, res: Response) => {
-  res.status(200).json({
+  res.json({
     success: true,
     message: "Health Sphere API running",
   });
 });
 
 /* =========================
-   🚀 API ROUTES
+   ROUTES
 ========================= */
 app.use("/api/patients", patientRoutes);
 app.use("/api/medical-records", medicalRecordRoutes);
@@ -230,10 +237,12 @@ app.use("/api/doctors", doctorRoutes);
 app.use("/api/auth", authRoutes);
 
 /* =========================
-   🤖 AI MODULE ROUTES (ADDED)
+   AI ROUTES
 ========================= */
-app.use("/api/ai", aiRoutes);
-app.use("/api/ai", aiStreamRoutes);
+app.use("/api/ai/public", aiPublicRoutes);
+app.use("/api/ai/patient", aiPatientRoutes);
+app.use("/api/ai/admin", aiAdminRoutes);
+app.use("/api/ai/stream", aiStreamRoutes);
 
 /* =========================
    404 HANDLER
@@ -242,6 +251,21 @@ app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     message: "Route not found",
+  });
+});
+
+/* =========================
+   GLOBAL ERROR HANDLER (NO NEXT WARNING)
+========================= */
+app.use((err: unknown, _req: Request, res: Response) => {
+  console.error("❌ Error:", err);
+
+  const message =
+    err instanceof Error ? err.message : "Internal Server Error";
+
+  res.status(500).json({
+    success: false,
+    message,
   });
 });
 
