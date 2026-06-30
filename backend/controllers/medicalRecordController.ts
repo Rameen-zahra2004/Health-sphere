@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import MedicalRecord from "../models/medicalRecord";
-import Appointment from "../models/Appointment";
+import Appointment from "../models/appointment";
 
 /* ================= RESPONSE HELPER ================= */
 const sendResponse = <T>(
