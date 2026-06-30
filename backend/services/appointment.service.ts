@@ -1,5 +1,4 @@
-
-import Appointment, { IAppointment } from "../models/Appointment";
+import Appointment, { IAppointment } from "../models/appointment";
 import { Types } from "mongoose";
 
 /* =========================
