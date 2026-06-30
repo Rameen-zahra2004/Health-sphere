@@ -1,5 +1,5 @@
 import Doctor from "../models/doctor";
-import Appointment from "../models/Appointment";
+import Appointment from "../models/appointment";
 import { AppError } from "../utils/AppError";
 import { UpdateDoctorDTO } from "../types/doctor";
 
