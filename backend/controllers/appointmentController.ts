@@ -299,7 +299,7 @@
 // };
 import { Request, Response } from "express";
 import { Types } from "mongoose";
-import Appointment from "../models/Appointment";
+import Appointment from "../models/appointment";
 import MedicalRecord from "../models/medicalRecord";
 
 import {
