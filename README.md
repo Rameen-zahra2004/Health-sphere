@@ -4,7 +4,7 @@ Multi-tenant healthcare SaaS for clinics to manage patients, appointments, and m
 
 **Live demo:** [health-sphere-sooty.vercel.app](https://health-sphere-sooty.vercel.app)
 
-![Admin Dashboard](./assets/admin-dashboard.png)
+![Admin Dashboard](./admin-dashboard.png)
 
 ## Features
 
@@ -23,17 +23,17 @@ Multi-tenant healthcare SaaS for clinics to manage patients, appointments, and m
 ### Admin Portal
 | Dashboard | Doctors List | Patients List | Appointments |
 |---|---|---|---|
-| ![Admin Dashboard](./assets/admin-dashboard.png) | ![Doctors List](./assets/admin-doctors-list.png) | ![Patients List](./assets/admin-patients-list.png) | ![Appointments Management](./assets/admin-appointments.png) |
+| ![Admin Dashboard](./admin-dashboard.png) | ![Doctors List](./admin-doctors-list.png) | ![Patients List](./admin-patients-list.png) | ![Appointments Management](./admin-appointments.png) |
 
 ### Doctor Portal
 | Dashboard | Profile | Patients | Availability |
 |---|---|---|---|
-| ![Doctor Dashboard](./assets/doctor-dashboard.png) | ![Doctor Profile](./assets/doctor-profile.png) | ![Doctor Patients](./assets/doctor-patients.png) | ![Doctor Availability](./assets/doctor-availability.png) |
+| ![Doctor Dashboard](./doctor-dashboard.png) | ![Doctor Profile](./doctor-profile.png) | ![Doctor Patients](./doctor-patients.png) | ![Doctor Availability](./doctor-availability.png) |
 
 ### Patient Portal
 | Sign Up | Dashboard | Book Appointment | Profile | Medical Records |
 |---|---|---|---|---|
-| ![Create Account](./assets/signup.png) | ![Patient Dashboard](./assets/patient-dashboard.png) | ![Book Appointment](./assets/patient-book-appointment.png) | ![Patient Profile](./assets/patient-profile.png) | ![Medical Records](./assets/patient-medical-records.png) |
+| ![Create Account](./signup.png) | ![Patient Dashboard](./patient-dashboard.png) | ![Book Appointment](./patient-book-appointment.png) | ![Patient Profile](./patient-profile.png) | ![Medical Records](./patient-medical-records.png) |
 
 ## Tech Stack
 
