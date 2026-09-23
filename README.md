@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HealthSphere
+
+Multi-tenant healthcare SaaS for clinics to manage patients, appointments, and medical records — with three dedicated portals (Admin, Doctor, Patient) and role-based access control within a shared instance.
+
+**Live demo:** [health-sphere-sooty.vercel.app](https://health-sphere-sooty.vercel.app)
+
+![Admin Dashboard](./assets/admin-dashboard.png)
+
+## Features
+
+- 🏥 **Three role-based portals** — Admin, Doctor, and Patient, each with a dedicated dashboard and permissions
+- 🔐 **JWT authentication with RBAC** — secure signup/login, role-based route access
+- 👨‍⚕️ **Doctor management** — admins add, edit, and remove doctors with specialization, fee, and clinic details
+- 🧑‍🤝‍🧑 **Patient management** — view registered patients and their records across the platform
+- 📅 **Appointment scheduling** — patients book appointments with a chosen doctor, date, time, and reason for visit
+- 🕐 **Doctor availability** — doctors configure their weekly working hours, day by day
+- 📁 **Medical records** — patients can access their health history in one place
+- ⚡ **Real-time updates** — powered by Socket.io
+- 📱 **Responsive UI** — built with Tailwind CSS
+
+## Screenshots
+
+### Admin Portal
+| Dashboard | Doctors List | Patients List | Appointments |
+|---|---|---|---|
+| ![Admin Dashboard](./assets/admin-dashboard.png) | ![Doctors List](./assets/admin-doctors-list.png) | ![Patients List](./assets/admin-patients-list.png) | ![Appointments Management](./assets/admin-appointments.png) |
+
+### Doctor Portal
+| Dashboard | Profile | Patients | Availability |
+|---|---|---|---|
+| ![Doctor Dashboard](./assets/doctor-dashboard.png) | ![Doctor Profile](./assets/doctor-profile.png) | ![Doctor Patients](./assets/doctor-patients.png) | ![Doctor Availability](./assets/doctor-availability.png) |
+
+### Patient Portal
+| Sign Up | Dashboard | Book Appointment | Profile | Medical Records |
+|---|---|---|---|---|
+| ![Create Account](./assets/signup.png) | ![Patient Dashboard](./assets/patient-dashboard.png) | ![Book Appointment](./assets/patient-book-appointment.png) | ![Patient Profile](./assets/patient-profile.png) | ![Medical Records](./assets/patient-medical-records.png) |
+
+## Tech Stack
+
+**Frontend**
+- Next.js (App Router)
+- TypeScript
+- Tailwind CSS
+
+**Backend**
+- Node.js / Express (`/backend`)
+- Socket.io for real-time communication
+- JWT for authentication, role-based access control (RBAC)
+
+**Deployment**
+- Frontend: [Vercel](https://vercel.com)
+- Backend: [Render](https://render.com)
+
+## Project Structure
+
+```
+health-sphere/
+├── app/          # Next.js frontend (App Router)
+├── backend/      # Express API server, Socket.io, auth & RBAC logic — deployed on Render
+├── public/       # Static assets
+└── logs/         # Server logs
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18+
+- npm / yarn / pnpm
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone the repo
+git clone https://github.com/Rameen-zahra2004/Health-sphere.git
+cd Health-sphere
+
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
+cd backend
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `.env.local` in the root and a `.env` in `/backend` with values such as:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+# Frontend (.env.local)
+NEXT_PUBLIC_API_URL=https://health-sphere-1eg4.onrender.com
 
-## Learn More
+# Backend (backend/.env)
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Running Locally
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Run the backend
+cd backend
+npm run dev
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# In a separate terminal, run the frontend
+npm run dev
+```
 
-## Deploy on Vercel
+Frontend runs at `http://localhost:3000`, backend at `http://localhost:5000` (adjust to your setup).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The **frontend** is deployed on **Vercel**, connected directly to this repo for automatic deployments — live at [health-sphere-sooty.vercel.app](https://health-sphere-sooty.vercel.app)
+- The **backend** (Express API + Socket.io server) is deployed separately on **Render** as a web service — live at [health-sphere-1eg4.onrender.com](https://health-sphere-1eg4.onrender.com)
+
+## Roadmap
+
+See [TODO.md](./TODO.md) for planned features and known issues.
+
+## Author
+
+**Rameen Zahra**
+- GitHub: [@Rameen-zahra2004](https://github.com/Rameen-zahra2004)
+- LinkedIn: [rameen-zahra-5a31a7381](https://www.linkedin.com/in/rameen-zahra-5a31a7381)
